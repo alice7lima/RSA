@@ -7,3 +7,9 @@ while(1):
     print("2 - Decifrar com RSA", end='\n')
     print("0 - Sair", end='\n')
     op = int(input("Escolha uma opcao: "))
+
+    if(op == 1):
+        rsa.get_public_key()
+
+    elif(op == 0): 
+        break
