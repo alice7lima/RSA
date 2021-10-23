@@ -9,7 +9,7 @@ while(1):
     op = int(input("Escolha uma opcao: "))
 
     if(op == 1):
-        rsa.get_public_key()
+        rsa.main_rsa()
 
     elif(op == 0): 
         break

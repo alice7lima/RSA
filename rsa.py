@@ -1,14 +1,16 @@
-from math import sqrt
 import numpy as np 
 import random
+import hashlib
+import math
+import os
 from random import randint
 
 '''
 Metodo que aplica a funcao totiente de Euler em um numero
 '''
 def phi_euler(n):
-    if(miller_rabin(n)):
-        return (phi_euler-1)
+    if(miller_rabin(n,40)):
+        return (n-1)
 
 
 '''
@@ -60,14 +62,31 @@ def prime_number():
   return n
 
 '''
+    Funcao de crifragem do RSA  
+'''
+
+def rsa_encrypt(e, n, msg):
+    return pow(msg, e, n)
+
+'''
+    Funcao de crifragem do RSA  
+'''
+
+def rsa_decrypt(m,d,n):
+    return pow(m, d, n)
+
+
+'''
     Funcao que descobre a chave publica E, para a cifragem.
 '''
 
-def ekey(n):
-    e = random.randInt(1, n)
+
+def ekey(p, q):
+    eul = phi_euler(q)*phi_euler(p)
+    e = random.randint(1, eul)
     
-    while(np.gcd(n, e) == 1):
-        e = random.randInt(1, n)
+    while(np.gcd(p*q, e) != 1):
+        e = random.randint(2, eul)
     
     return e
 
@@ -75,19 +94,104 @@ def ekey(n):
     Funcao que descobre a chave privada d, para a decifragem.
 '''
 
-def dkey(e, n):
-    d = 1
-    while((d*e)% n == 1):
-        d+=1
+def dkey(e, aux):
+    # r = phi_euler(p)*phi_euler(q)
 
-    return d
+    for i in range(1, aux):
+        if((e * i) % aux == 1):
+            print("encontrou")
+            return i
 
 
-def get_public_key():
+def main_rsa():
     p = prime_number()
     q = prime_number()
+    n = p * q
+    e = ekey(p,q)
+    print(e)
+    aux = (p-1) * (q-1)
+    d = dkey(e,aux)
 
-    #e = ekey(n)
-    #d = dkey(e, n)
+    str1 = "a lice nao danca com o cralo"
+    str2 = hashlib.sha3_256(str1.encode())
+    str2 = str2.hexdigest()
+    # print(str2)
+    r = os.urandom(64)
 
-    print("numeros: %d        %d" % (p, q))
+    c = OAEP_enc(str2, n, e, r)
+    print(c)
+    print("############ Decripttt")
+    OAEP_dec(c, n, d, r)
+
+    #print("numeros: %d        %d" % (p, q))
+
+
+def i2osp(x, xlen):
+    return x.to_bytes(xlen, byteorder='big')
+
+def MGF(seed, mlen):
+    t = b''
+    hlen = 128
+    for c in range(0, math.ceil(mlen / hlen)):
+        _c = i2osp(c, 4)
+        t += hashlib.sha3_256(seed + _c).digest()
+    return t[:mlen]
+
+def byte_xor(ba1, ba2):
+    return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
+
+def OAEP_enc(m,n,e,r):
+    k = math.ceil(n.bit_length()/8)
+    mlen = len(m)
+    k0 = int(math.ceil(len(r)/8))
+    k1 = k-2*k0-mlen-2
+    if k1 < 0:
+        return False
+
+    lhash = hashlib.sha3_256().hexdigest()
+    hlen = len(lhash)/2
+
+    ps = []
+    while len(ps) != 2 * k1:
+        ps.append('0')
+
+    ps = ''.join(ps)
+
+    pad = int(lhash + ps + '01' + m, 16)
+    
+    mask = int.from_bytes(MGF(r, k0 + k1 + mlen + 1),  byteorder='big')
+    mask1 = mask ^ pad
+    mask1 = mask1.to_bytes(mask1.bit_length()//8, byteorder='big')
+    seedmask = MGF(mask1, k0)
+    maskedseed = byte_xor(seedmask,r)
+
+    res = b'\x00' + maskedseed + mask1
+    res = int.from_bytes(res, byteorder='big')
+
+    cripto = rsa_encrypt(e, n, res)
+
+    return cripto
+
+
+def OAEP_dec(m, n, d, r):
+    mlen = math.ceil(m.bit_length()/8)
+    dlen = math.ceil(d.bit_length()/8)
+    print(mlen)
+    print(dlen)
+
+    k = math.ceil(n.bit_length()/8)
+    k0 = int(math.ceil(len(r)/8))
+    mlen = math.ceil(m.bit_length()/8)
+    k1 = k - 2 * k0 - mlen - 2
+    decript = rsa_decrypt(m, d, n)
+    print(decript)
+
+    p1 = (pow(2, 8 * (k0 + k1 + mlen + 1)) - 1) & decript
+    p2 = (pow(2, 8 * k0) - 1) & (decript >> 8 * (k0 + k1 + mlen + 1))
+    p3 = p1.to_bytes((p1.bit_length()//8) + 1, byteorder='big')
+    p4 = int.from_bytes(MGF(p3, k0 + k1 + mlen + 1),  byteorder='big') ^ p2
+
+    print("###### DEBUG")
+    r = int.from_bytes(r, byteorder='big')
+    if(r == p4):
+        print("deu certo")
