@@ -1,12 +1,13 @@
 from math import sqrt
 import numpy as np 
 import random
+from random import randint
 
 '''
 Metodo que aplica a funcao totiente de Euler em um numero
 '''
 def phi_euler(n):
-    if(check_prime(n)):
+    if(miller_rabin(n)):
         return (phi_euler-1)
 
 
@@ -14,42 +15,49 @@ def phi_euler(n):
 Funcao que verifica se um numero eh primo com base no teste de Miller Rabin
 '''
 
-def check_prime(n):
-    nmu = n-1
-    k = 0
-    i = 1
-    m = 0
-    while(nmu%(pow(2,i)) == 0):
-        m = nmu%(pow(2,i))
-        i += 1
-        k += 1
+def miller_rabin(n, k):
 
-    a = random.randrange(2,n-2)
+    if (n%2 == 0 or n < 2):
+        return False
 
-    if((pow(a,m) % n) == 1 or -(pow(a,m) % n) == 1):
+    if (n == 2):
         return True
-    else:
-        b = pow(a,m)
-        while(1):
-            if(b*b % n == 1):
-                return False
-            elif(-(b*b) % n == 1):
-                return True
-            else:
-                b = b*b % n 
 
+    r = 0
+    m = n-1
+
+    while (m%2 == 0):
+        r += 1
+        m //= 2
+
+    for i in range(k):
+        a = random.randint(2, n-1)
+        x = pow(a,m,n)
+
+        if x == 1 or x == n-1:    
+            continue
+
+        for i in range(r-1):
+            x = pow(x,2,n)
+            if x == n-1:
+                break
+        else:
+            return False
+
+    return True
 
 '''
     Funcao auxiliar que gera um numero primo
 '''
 
 def prime_number():
+  n = random.getrandbits(1024)
+  #print(n)
+
+  while(miller_rabin(n, 40) == False):
     n = random.getrandbits(1024)
 
-    while(not check_prime(n)):
-        n = random.getrandbits(1024)
-
-    return n
+  return n
 
 '''
     Funcao que descobre a chave publica E, para a cifragem.
