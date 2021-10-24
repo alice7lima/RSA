@@ -83,9 +83,9 @@ def rsa_decrypt(m,d,n):
 
 def ekey(p, q):
     eul = phi_euler(q)*phi_euler(p)
-    e = random.randint(1, eul)
+    e = random.randint(2, eul)
     
-    while(np.gcd(p*q, e) != 1):
+    while(np.gcd(eul, e) != 1):
         e = random.randint(2, eul)
     
     return e
@@ -94,20 +94,37 @@ def ekey(p, q):
     Funcao que descobre a chave privada d, para a decifragem.
 '''
 
-def dkey(e, aux):
-    # r = phi_euler(p)*phi_euler(q)
 
-    for i in range(1, aux):
-        if((e * i) % aux == 1):
-            print("encontrou")
-            return i
+def dkey(e, aux):
+    u = [1,0,aux]
+    v = [0,1,e]
+
+    while(v[2] != 0):
+        q = int(math.floor(u[2]//v[2]))
+        a1 = u[0] - (q*v[0])
+        a2 = u[1] - (q*v[1])
+        a3 = u[2] - (q*v[2])
+        u[0], u[1], u[2] = v[0], v[1], v[2]
+        v[0], v[1], v[2] = a1, a2, a3
+
+    if(u[1] < 0):
+        return (u[1] + aux) 
+    else:
+        return (u[1]) 
+    # for i in range(1, aux):
+    #     if((e * i) % aux == 1):
+    #         return i
+    # print("nao encontrou")
 
 
 def main_rsa():
     p = prime_number()
     q = prime_number()
+    print("numeros: %d        %d" % (p, q))
     n = p * q
     e = ekey(p,q)
+    print("e ", e)
+    print("bacou")
     print(e)
     aux = (p-1) * (q-1)
     d = dkey(e,aux)
@@ -119,11 +136,10 @@ def main_rsa():
     r = os.urandom(64)
 
     c = OAEP_enc(str2, n, e, r)
-    print(c)
+    #print(c)
     print("############ Decripttt")
     OAEP_dec(c, n, d, r)
 
-    #print("numeros: %d        %d" % (p, q))
 
 
 def i2osp(x, xlen):
