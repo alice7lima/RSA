@@ -1,10 +1,9 @@
 import numpy as np
 import random
-import hashlib
 import math
+import hashlib
 import os
-from random import randint
-import struct
+import oaep
 
 '''
 Metodo que aplica a funcao totiente de Euler em um numero
@@ -12,7 +11,6 @@ Metodo que aplica a funcao totiente de Euler em um numero
 def phi_euler(n):
     if(miller_rabin(n,40)):
         return (n-1)
-
 
 '''
 Funcao que verifica se um numero eh primo com base no teste de Miller Rabin
@@ -81,7 +79,6 @@ def rsa_decrypt(m, d, n):
     Funcao que descobre a chave publica E, para a cifragem.
 '''
 
-
 def ekey(p, q):
     eul = phi_euler(q)*phi_euler(p)
     e = random.randint(2, eul)
@@ -94,7 +91,6 @@ def ekey(p, q):
 '''
     Funcao que descobre a chave privada d, para a decifragem.
 '''
-
 
 def dkey(e, aux):
     u = [1,0,aux]
@@ -112,10 +108,33 @@ def dkey(e, aux):
         return (u[1] + aux)
     else:
         return (u[1])
-    # for i in range(1, aux):
-    #     if((e * i) % aux == 1):
-    #         return i
-    # print("nao encontrou")
+
+'''
+Funcao que gera a assinatura da mensagem cifrada.
+O hash da mensagem original eh gerado e este eh cifrado junto a chave privada d
+'''
+def signature(m,d,n):
+    hashed = hashlib.sha3_256(m.encode('ascii')).digest()
+    hashed = oaep.os2ip(hashed)
+    #s = rsa_decrypt(hashed,d,n)
+    s = rsa_encrypt(d,n,hashed)
+    aux = oaep.i2osp(s,256)
+    return aux
+
+
+'''
+Funcao que compara o hash da mensagem decriptada com o hash derivado da assinatura.
+'''
+def verification(m,s,n,e):
+    hashed = hashlib.sha3_256(m.encode('ascii')).digest()
+    s = oaep.os2ip(s)
+    v = rsa_decrypt(s,e,n)
+    v = oaep.i2osp(v,32)
+
+    if(hashed == v):
+        return True
+    else:
+        return False
 
 
 def main_rsa():
@@ -134,67 +153,14 @@ def main_rsa():
     aux = (p-1) * (q-1)
     d = dkey(e,aux)
 
-    str2 = "a lice nao danca e nem grava tikoteko com o cralo, e o cralo fica muito triste com isso"
-    
+    #str2 = "a lice nao danca e nem grava tikoteko com o cralo, e o cralo fica muito triste com isso"
+    str2 = "lalalal la vie en rose d d d d danceeee tururu turu tu turu turu highlight"
     r = os.urandom(32)
-    result = OAEP_enc(str2, n, e, r)
+    result = oaep.OAEP_enc(str2, n, e, r)
 
-    decript = OAEP_dec(result, n, d, r)
+    decript = oaep.OAEP_dec(result, n, d, r)
 
-    print(decript)
+    print("Resultado decript:", decript)
 
-def i2osp(x, xlen):
-    return x.to_bytes(xlen, byteorder='big')
-
-def MGF(seed, mlen):
-    t = b''
-    hlen = len(hashlib.sha3_256().digest())
-    for c in range(0, math.ceil(mlen / hlen)):
-        _c = i2osp(c, 4)
-        t += hashlib.sha3_256(seed + _c).digest()
-    return t[:mlen]
-
-def byte_xor(ba1, ba2):
-    return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
-
-def OAEP_enc(m,n,e,r):
-    global m_length, xl, yl
-    k0 = len(r)
-    k1 = 128
-    nlen = 2048
-
-    for _ in range(k1):
-        m += str(0)
-
-    m_length = len(m)
-    G = MGF(r, nlen - k0)
-    X = byte_xor(bytes(m, "UTF-8"), G)
-    Y = byte_xor(r, hashlib.sha3_256(X).digest())
-
-    xl = len(X)
-    yl = len(Y)
-
-    result = b''.join([X, Y])
-
-    result = int.from_bytes(result, byteorder='big')
-    result = rsa_encrypt(e, n, result)
-
-    return result
-
-
-def OAEP_dec(m, n, d, r):
-    global m_length, xl, yl
-    k0 = len(r)
-    nlen = 2048
-    result = rsa_decrypt(m, d, n)
-    result = result.to_bytes(xl+yl, byteorder='big')
-
-    X = result[:xl]
-    Y = result[xl:]
-
-    r = byte_xor(Y, hashlib.sha3_256(X).digest())
-    m = byte_xor(X, MGF(r, nlen - k0))
-
-    m = str(m).replace("0", "")
-    
-    return m
+    s = signature(str2,e,n)
+    print("assinature", verification(str2,s,n,d))
