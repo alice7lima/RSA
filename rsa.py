@@ -1,9 +1,10 @@
-import numpy as np 
+import numpy as np
 import random
 import hashlib
 import math
 import os
 from random import randint
+import struct
 
 '''
 Metodo que aplica a funcao totiente de Euler em um numero
@@ -36,7 +37,7 @@ def miller_rabin(n, k):
         a = random.randint(2, n-1)
         x = pow(a,m,n)
 
-        if x == 1 or x == n-1:    
+        if x == 1 or x == n-1:
             continue
 
         for i in range(r-1):
@@ -62,17 +63,17 @@ def prime_number():
   return n
 
 '''
-    Funcao de crifragem do RSA  
+    Funcao de crifragem do RSA
 '''
 
 def rsa_encrypt(e, n, msg):
     return pow(msg, e, n)
 
 '''
-    Funcao de crifragem do RSA  
+    Funcao de crifragem do RSA
 '''
 
-def rsa_decrypt(m,d,n):
+def rsa_decrypt(m, d, n):
     return pow(m, d, n)
 
 
@@ -84,10 +85,10 @@ def rsa_decrypt(m,d,n):
 def ekey(p, q):
     eul = phi_euler(q)*phi_euler(p)
     e = random.randint(2, eul)
-    
+
     while(np.gcd(eul, e) != 1):
         e = random.randint(2, eul)
-    
+
     return e
 
 '''
@@ -108,9 +109,9 @@ def dkey(e, aux):
         v[0], v[1], v[2] = a1, a2, a3
 
     if(u[1] < 0):
-        return (u[1] + aux) 
+        return (u[1] + aux)
     else:
-        return (u[1]) 
+        return (u[1])
     # for i in range(1, aux):
     #     if((e * i) % aux == 1):
     #         return i
@@ -118,36 +119,36 @@ def dkey(e, aux):
 
 
 def main_rsa():
+    os.system('cls')
     p = prime_number()
     q = prime_number()
-    print("numeros: %d        %d" % (p, q))
+    # print(p)
+    # print(q)
     n = p * q
+    print("bitp:", p.bit_length())
+    print("bitq: ", q.bit_length())
+    print("bit: ", n.bit_length())
     e = ekey(p,q)
-    print("e ", e)
-    print("bacou")
-    print(e)
+    #print("bacou")
+    #print(e)
     aux = (p-1) * (q-1)
     d = dkey(e,aux)
 
-    str1 = "a lice nao danca com o cralo"
-    str2 = hashlib.sha3_256(str1.encode())
-    str2 = str2.hexdigest()
-    # print(str2)
-    r = os.urandom(64)
+    str2 = "a lice nao danca e nem grava tikoteko com o cralo, e o cralo fica muito triste com isso"
+    
+    r = os.urandom(32)
+    result = OAEP_enc(str2, n, e, r)
 
-    c = OAEP_enc(str2, n, e, r)
-    #print(c)
-    print("############ Decripttt")
-    OAEP_dec(c, n, d, r)
+    decript = OAEP_dec(result, n, d, r)
 
-
+    print(decript)
 
 def i2osp(x, xlen):
     return x.to_bytes(xlen, byteorder='big')
 
 def MGF(seed, mlen):
     t = b''
-    hlen = 128
+    hlen = len(hashlib.sha3_256().digest())
     for c in range(0, math.ceil(mlen / hlen)):
         _c = i2osp(c, 4)
         t += hashlib.sha3_256(seed + _c).digest()
@@ -157,57 +158,43 @@ def byte_xor(ba1, ba2):
     return bytes([_a ^ _b for _a, _b in zip(ba1, ba2)])
 
 def OAEP_enc(m,n,e,r):
-    k = math.ceil(n.bit_length()/8)
-    mlen = len(m)
-    k0 = int(math.ceil(len(r)/8))
-    k1 = k-2*k0-mlen-2
-    if k1 < 0:
-        return False
+    global m_length, xl, yl
+    k0 = len(r)
+    k1 = 128
+    nlen = 2048
 
-    lhash = hashlib.sha3_256().hexdigest()
-    hlen = len(lhash)/2
+    for _ in range(k1):
+        m += str(0)
 
-    ps = []
-    while len(ps) != 2 * k1:
-        ps.append('0')
+    m_length = len(m)
+    G = MGF(r, nlen - k0)
+    X = byte_xor(bytes(m, "UTF-8"), G)
+    Y = byte_xor(r, hashlib.sha3_256(X).digest())
 
-    ps = ''.join(ps)
+    xl = len(X)
+    yl = len(Y)
 
-    pad = int(lhash + ps + '01' + m, 16)
-    
-    mask = int.from_bytes(MGF(r, k0 + k1 + mlen + 1),  byteorder='big')
-    mask1 = mask ^ pad
-    mask1 = mask1.to_bytes(mask1.bit_length()//8, byteorder='big')
-    seedmask = MGF(mask1, k0)
-    maskedseed = byte_xor(seedmask,r)
+    result = b''.join([X, Y])
 
-    res = b'\x00' + maskedseed + mask1
-    res = int.from_bytes(res, byteorder='big')
+    result = int.from_bytes(result, byteorder='big')
+    result = rsa_encrypt(e, n, result)
 
-    cripto = rsa_encrypt(e, n, res)
-
-    return cripto
+    return result
 
 
 def OAEP_dec(m, n, d, r):
-    mlen = math.ceil(m.bit_length()/8)
-    dlen = math.ceil(d.bit_length()/8)
-    print(mlen)
-    print(dlen)
+    global m_length, xl, yl
+    k0 = len(r)
+    nlen = 2048
+    result = rsa_decrypt(m, d, n)
+    result = result.to_bytes(xl+yl, byteorder='big')
 
-    k = math.ceil(n.bit_length()/8)
-    k0 = int(math.ceil(len(r)/8))
-    mlen = math.ceil(m.bit_length()/8)
-    k1 = k - 2 * k0 - mlen - 2
-    decript = rsa_decrypt(m, d, n)
-    print(decript)
+    X = result[:xl]
+    Y = result[xl:]
 
-    p1 = (pow(2, 8 * (k0 + k1 + mlen + 1)) - 1) & decript
-    p2 = (pow(2, 8 * k0) - 1) & (decript >> 8 * (k0 + k1 + mlen + 1))
-    p3 = p1.to_bytes((p1.bit_length()//8) + 1, byteorder='big')
-    p4 = int.from_bytes(MGF(p3, k0 + k1 + mlen + 1),  byteorder='big') ^ p2
+    r = byte_xor(Y, hashlib.sha3_256(X).digest())
+    m = byte_xor(X, MGF(r, nlen - k0))
 
-    print("###### DEBUG")
-    r = int.from_bytes(r, byteorder='big')
-    if(r == p4):
-        print("deu certo")
+    m = str(m).replace("0", "")
+    
+    return m
