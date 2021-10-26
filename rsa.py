@@ -136,9 +136,10 @@ def verification(m,s,n,e):
     else:
         return False
 
-
+'''
+    Funcao corrente que executa toda a cifragem e decifragem do do rsa com a dinamica OAEP.
+'''
 def main_rsa():
-    os.system('cls')
     p = prime_number()
     q = prime_number()
     # print(p)
@@ -153,14 +154,13 @@ def main_rsa():
     aux = (p-1) * (q-1)
     d = dkey(e,aux)
 
-    #str2 = "a lice nao danca e nem grava tikoteko com o cralo, e o cralo fica muito triste com isso"
-    str2 = "lalalal la vie en rose d d d d danceeee tururu turu tu turu turu highlight"
+    str2 = "a lice danca e e e e nem grava tikoteko com o cralo, e o cralo fica muito triste com isso."
     r = os.urandom(32)
-    result = oaep.OAEP_enc(str2, n, e, r)
 
+    result = oaep.OAEP_enc(str2, n, e, r)
     decript = oaep.OAEP_dec(result, n, d, r)
 
     print("Resultado decript:", decript)
-
     s = signature(str2,e,n)
+
     print("assinature", verification(str2,s,n,d))
