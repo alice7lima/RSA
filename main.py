@@ -1,15 +1,14 @@
 import rsa
 
 while(1):
-    print("MENU", end="\n")
 
-    print("1 - Cifrar com RSA", end='\n')
-    print("2 - Decifrar com RSA", end='\n')
-    print("0 - Sair", end='\n')
+    print("1 - Iniciar a programa", end='\n')
+    print("0 - Encerrar o programa", end='\n')
     op = int(input("Escolha uma opcao: "))
 
     if(op == 1):
+        print("Digite a mensagem que deseja cifrar (sem acento):")
         rsa.main_rsa()
 
-    elif(op == 0): 
+    if(op == 0): 
         break

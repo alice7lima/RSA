@@ -39,8 +39,8 @@ def byte_xor(ba1, ba2):
 '''
 def OAEP_enc(m, n, e, r):
     global m_length, xl, yl
-    k0 = len(r)                                          # k0: tamanho da chave randomica gerada.
-    k1 = 32                                              # k1: 32 bits por padrao
+    k0 = len(r)                                          # k0: tamanho da chave randomica gerada = 32.
+    k1 = 32                                              # k1 = k0: 32 bits por padrao
     nlen = 2048                                          # nlen o tamanho em bits do modulo rsa, no caso 2048.
 
     # Mensagem inicialmente possui tamanho (nlen-k0-k1) bits.
@@ -56,7 +56,7 @@ def OAEP_enc(m, n, e, r):
     xl = len(X)
     yl = len(Y)
 
-    result = b''.join([X, Y])                      # A saida do oaep sera a concatenacao desses dois blocos, o X e o Y.
+    result = b''.join([X, Y])                           # A saida do oaep sera a concatenacao desses dois blocos, o X e o Y.
 
     result = int.from_bytes(result, byteorder='big')    # Transforma o conjunto de bytes para inteiro.
     result = rsa.rsa_encrypt(e, n, result)              # Faz a cifragem desses inteiros.
@@ -87,6 +87,7 @@ def OAEP_dec(m, n, d, r):
     
     m = byte_xor(X, MGF(r, nlen - k0))                 # Recuperacao da mensagem depois da descoberta do 'r'.
 
-    m = str(m).replace("0", "") # Retira o padding da mensagem
+    m = str(m)       # Retira o padding da mensagem
+    m = m[:-32]
 
     return m
