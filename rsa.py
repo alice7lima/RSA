@@ -98,107 +98,75 @@ def dkey(e, phi):
     u = [1,0,phi]                   
     v = [0,1,e]
 
-    while(v[2] != 0):                                 # enquanto a posicao do vetor que inicialmente guarda e eh maior que zero
-        q = int(math.floor(u[2]//v[2]))               # eh calculado o chao da divisao de u por v (inicialmente phi/e)
-        a1 = u[0] - (q*v[0])                          # calculo dos novos valores do vetor v  
+    while(v[2] != 0):                                 #enquanto a posicao do vetor que inicialmente guarda e eh maior que zero
+        q = int(math.floor(u[2]//v[2]))               #eh calculado o chao da divisao de u por v (inicialmente phi/e)
+        a1 = u[0] - (q*v[0])                          #calculo dos novos valores do vetor v  
         a2 = u[1] - (q*v[1])
         a3 = u[2] - (q*v[2])        
-        u[0], u[1], u[2] = v[0], v[1], v[2]           # transfere os valores do vetor v para o vetor u
-        v[0], v[1], v[2] = a1, a2, a3                 # atualiza os valores de v
+        u[0], u[1], u[2] = v[0], v[1], v[2]             #transfere os valores do vetor v para o vetor u
+        v[0], v[1], v[2] = a1, a2, a3                   #atualiza os valores de v
 
-    if(u[1] < 0):                                     # se a primeira posicao de u eh negativa entao d eh phi - u[1]
+    if(u[1] < 0):                                       #se a primeira posicao de u eh negativa entao d eh phi - u[1]
         return (u[1] + phi)
     else:
-        return (u[1])                                 # se eh positiva entao eh o proprio d
+        return (u[1])                                   #se eh positiva entao eh o proprio d
 
 '''
 Funcao que gera a assinatura da mensagem cifrada.
 O hash da mensagem original eh gerado e este eh cifrado junto a chave privada d
 '''
 def signature(m,d,n):
-    hashed = hashlib.sha3_256(m.encode('ascii')).digest()           # faz o hash da mensagem
-    hashed = oaep.os2ip(hashed)                                     # coverte para um inteiro
-    s = rsa_decrypt(hashed,d,n)                                     # eh feito a cifragem com rsa da mensagem com a chave privada                                     
-    print("Assinatura gerada em bits: %s\n\n" % oaep.i2osp(s, 256))
-    return s
+    hashed = hashlib.sha3_256(m.encode('ascii')).digest()           #faz o hash da mensagem
+    hashed = oaep.os2ip(hashed)                                     #coverte para um inteiro
+    #s = rsa_decrypt(hashed,d,n)
+    s = rsa_encrypt(d,n,hashed)                           #eh feito a cifragem com rsa da mensagem com a chave publica
+    aux = oaep.i2osp(s,256)                               #o resultado eh convertido para uma sequencia de bytes, assinatura
+    return aux
 
 
 '''
 Funcao que compara o hash da mensagem decriptada com o hash derivado da assinatura.
 '''
 def verification(m,s,n,e):
-    hashed = hashlib.sha3_256(m.encode('ascii')).digest()          # faz o hash da mensagem decriptada
-    s = oaep.i2osp(s, 256)                                         # converte a assinatura para um inteiro
-    s = oaep.os2ip(s)
-    
-    #v = rsa_decrypt(s,e,n)                                         # eh feito a decifracao com rsa da assinatura com a chave privada
-    v = rsa_encrypt(e,n,s)
-    v = oaep.i2osp(v,32)                                           # resultado eh convertido para sequencia de bytes
+    hashed = hashlib.sha3_256(m.encode('ascii')).digest()          #faz o hash da mensagem decriptada 
+    s = oaep.os2ip(s)                                      #converte a assinatura para um inteiro
+    v = rsa_decrypt(s,e,n)                                 #eh feito a decifracao com rsa da assinatura com a chave privada
+    v = oaep.i2osp(v,32)                                   #resultado eh convertido para sequencia de bytes
 
-    if(hashed == v):                                                # verifica se o hash da mensagem decriptada eh igual a assinatura decifrada
-        return True                                                 # em caso positivo a assinatura eh valida
+    if(hashed == v):                                  #verifica se o hash da mensagem decriptada eh igual a assinatura decifrada
+        return True                                   #em caso positivo a assinatura eh valida
     else:
-        return False                                                # em caso negativo a assinatura eh invalida
+        return False                                  #em caso negativo a assinatura eh invalida
 
 '''
     Funcao corrente que executa toda a cifragem e decifragem do do rsa com a dinamica OAEP.
 '''
 def main_rsa():
-    inp = input()
-    
     #gera dois numeros de 1024 bits primos
-    print("Gerando P e Q...")
     p = prime_number()                              
     q = prime_number()
 
-    n = p * q                                           # gera o primeiro numeoro da chave publica
-    #print("Tamanho dos parametros em bits:")
-    #print("p:", p.bit_length())
-    #print("q:", q.bit_length())
-    #print("n:", n.bit_length())
-    e = ekey(p,q)                                       # gera o segundo numero da chave publica
+    n = p * q                                       #gera o primeiro numeoro da chave publica
 
-    print("Chave publica gerada")
-
+    print("bitp:", p.bit_length())
+    print("bitq: ", q.bit_length())
+    print("bit: ", n.bit_length())
+    e = ekey(p,q)                                   #gera o segundo numero da chave publica
     aux = phi_euler(p)*phi_euler(q)
     d = dkey(e,aux)
 
-    print("Chave privada gerada")
+    str2 = "a lice danca e e e e nem grava tikoteko com o cralo, e o cralo fica muito triste com isso."
+    r = os.urandom(32)                              #gera r aleatoriamente
 
-    f = open("resultados.txt", "w+")
+    result = oaep.OAEP_enc(str2, n, e, r)           #cifra a mensagem
+    s = signature(str2,e,n)                         #gera a assinatura
 
-    r = os.urandom(32)                                  # gera r aleatoriamente
+    decript = oaep.OAEP_dec(result, n, d, r)        #decifra a mensagem
 
-    s = signature(inp,d,n)                              # gera a assinatura 
-    s_str = str(s)
-    s_crp = impbase64.encode64(s_str)
+    print("Resultado decript:", decript)
+    
 
-
-    result_cifra = oaep.OAEP_enc(inp, n, e, r)          # cifra a mensagem
-    men_cifrada = str(result_cifra)
-    print("Resultado da cifragem: %s\n\n" % men_cifrada)
-    result = impbase64.encode64(men_cifrada)
-
-    f.write("Assinatura em Base 64:\n%s\n\n" % s_crp)               # resultados impressos no arquivo de texto
-    f.write("Mensagem cifrada em base 64:\n%s\n\n" % result)
-    f.write("Chave Publica n: %s\n" % impbase64.encode64(str(n)))
-    f.write("Chave Publica e: %s\n" % impbase64.encode64(str(e)))
-
-    men_decifrada = impbase64.decode64(result)
-    aux = men_cifrada.encode('ascii')
-    men_decifrada = int(aux, 10)
-    decript = oaep.OAEP_dec(men_decifrada, n, d, r)         # decifra a mensagem
-    decript = decript[2:len(decript)-1]
-    print("Resultado da decifragem: %s\n" % decript)
-
-    s_dec = impbase64.decode64(s_crp)
-    s_dec_asc = s_dec.encode('ascii')
-    s_dec_str = str(s_dec_asc)
-    s_dec_int = s_dec_str[2:len(s_dec_str)-5]
-    s_dec_int = s_dec_int.encode('ascii')
-    s_dec_int = int(s_dec_int, 10)
-
-    if(verification(decript,s_dec_int,n,e) == True):         # verifica se a assinatura eh valida
+    if(verification(str2,s,n,d) == True):               #verifica se a assinatura eh valida
         print("Verificado: assinatura valida")
     else:
         print("Erro: assinatura invalida")
