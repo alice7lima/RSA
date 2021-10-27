@@ -130,9 +130,8 @@ def verification(m,s,n,e):
     hashed = hashlib.sha3_256(m.encode('ascii')).digest()          # faz o hash da mensagem decriptada
     s = oaep.i2osp(s, 256)                                         # converte a assinatura para um inteiro
     s = oaep.os2ip(s)
-    
-    #v = rsa_decrypt(s,e,n)                                         # eh feito a decifracao com rsa da assinatura com a chave privada
-    v = rsa_encrypt(e,n,s)
+                                       
+    v = rsa_encrypt(e,n,s)                                         # eh feito a cifracao com rsa da assinatura com a chave privada
     v = oaep.i2osp(v,32)                                           # resultado eh convertido para sequencia de bytes
 
     if(hashed == v):                                                # verifica se o hash da mensagem decriptada eh igual a assinatura decifrada
@@ -152,10 +151,6 @@ def main_rsa():
     q = prime_number()
 
     n = p * q                                           # gera o primeiro numeoro da chave publica
-    #print("Tamanho dos parametros em bits:")
-    #print("p:", p.bit_length())
-    #print("q:", q.bit_length())
-    #print("n:", n.bit_length())
     e = ekey(p,q)                                       # gera o segundo numero da chave publica
 
     print("Chave publica gerada")

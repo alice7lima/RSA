@@ -60,7 +60,6 @@ def OAEP_enc(m, n, e, r):
 
     result = int.from_bytes(result, byteorder='big')    # Transforma o conjunto de bytes para inteiro.
     result = rsa.rsa_encrypt(e, n, result)              # Faz a cifragem desses inteiros.
-    # print("RSA result:", result)
 
     return result
 

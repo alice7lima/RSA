@@ -10,5 +10,5 @@ while(1):
         print("Digite a mensagem que deseja cifrar (sem acento):")
         rsa.main_rsa()
 
-    if(op == 0): 
+    if(op == 0):
         break

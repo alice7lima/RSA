@@ -48,9 +48,3 @@ def decode64(m):
 
     return result
 
-
-# if __name__ == '__main__':
-#     s = input()
-#     output = encode64(s)
-#     print(output)
-#     print(decode64(output))
